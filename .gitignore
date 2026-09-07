@@ -1,0 +1,42 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# --- Virtual environment ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Environment variables ---
+.env
+.env.*
+!.env.example
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# --- Pytest / Coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Uploaded files (temporary) ---
+uploads/
+tmp/

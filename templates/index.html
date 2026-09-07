@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RTOM Weight to Weight</title>
+    <style>
+        /* Reset & base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f7fa;
+            color: #1e293b;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+            padding: 2rem 2rem 3rem;
+        }
+
+        h1 {
+            font-weight: 600;
+            font-size: 1.8rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1rem;
+        }
+
+        /* Upload card */
+        .upload-card {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: border-color 0.2s;
+            margin-bottom: 2rem;
+        }
+        .upload-card.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .upload-card input[type="file"] {
+            display: none;
+        }
+        .upload-label {
+            display: inline-block;
+            background: #3b82f6;
+            color: #fff;
+            padding: 0.6rem 1.8rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 0.5rem;
+        }
+        .upload-label:hover {
+            background: #2563eb;
+        }
+        .upload-label:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .file-name {
+            margin-top: 0.75rem;
+            font-size: 0.95rem;
+            color: #475569;
+        }
+        .btn-calc {
+            background: #0f172a;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 2.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 1rem;
+        }
+        .btn-calc:hover:not(:disabled) {
+            background: #1e293b;
+        }
+        .btn-calc:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-calc.loading {
+            position: relative;
+            color: transparent;
+        }
+        .btn-calc.loading::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1.2rem;
+            height: 1.2rem;
+            margin: -0.6rem 0 0 -0.6rem;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .report-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.75rem;
+            margin: 1.25rem auto 0;
+            max-width: 760px;
+            text-align: left;
+        }
+        .report-fields label {
+            color: #475569;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .report-fields input {
+            width: 100%;
+            margin-top: 0.3rem;
+            padding: 0.55rem 0.65rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font: inherit;
+        }
+        .report-actions {
+            display: none;
+            justify-content: flex-end;
+            margin-bottom: 1rem;
+        }
+        .report-actions.visible {
+            display: flex;
+        }
+        .btn-download {
+            background: #166534;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .btn-download:hover {
+            background: #14532d;
+        }
+        .pdf-report {
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-msg {
+            background: #fef2f2;
+            color: #b91c1c;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            margin-top: 1rem;
+            display: none;
+            white-space: pre-wrap;
+        }
+
+        /* Results */
+        .results {
+            display: none;
+            margin-top: 2rem;
+        }
+        .results.visible {
+            display: block;
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin: 1.8rem 0 1rem;
+        }
+
+        /* Metadata row */
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 2rem;
+        }
+        .metadata-item {
+            text-align: center;
+        }
+        .metadata-item .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .metadata-item .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+
+        /* Metrics cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .metric-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .metric-card .value {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .metric-card .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-top: 0.2rem;
+        }
+        .metric-card .value.abnormal {
+            color: #b91c1c;
+        }
+        .metric-card .value.normal {
+            color: #166534;
+        }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th {
+            background: #f1f5f9;
+            padding: 0.5rem 0.7rem;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.5rem 0.7rem;
+            border-top: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        tr.abnormal-row {
+            background: #fef2f2;
+        }
+        .badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        .badge-normal {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-abnormal {
+            background: #fecaca;
+            color: #b91c1c;
+        }
+        .badge-stand {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-joint {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .no-cycles {
+            color: #64748b;
+            padding: 1.5rem 0;
+            text-align: center;
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 1.5rem; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+            .metadata-grid { grid-template-columns: 1fr 1fr; }
+            .upload-card { padding: 1.5rem 1rem; }
+        }
+
+        @media print {
+            @page { margin: 15mm; }
+            body { background: #fff; padding: 0; }
+            .container { max-width: none; box-shadow: none; padding: 0; }
+            .container > * { display: none !important; }
+            .container > .pdf-report { display: block !important; }
+            .pdf-report { color: #333; font-family: Arial, sans-serif; }
+            .report-cover { min-height: 260mm; position: relative; page-break-after: always; }
+            .report-banner { height: 42mm; background: #ff8c00; margin: -15mm -15mm 28mm; }
+            .report-brand { position: absolute; top: 22mm; width: 100%; text-align: center; font-size: 23pt; font-weight: 700; }
+            .report-title { text-align: center; font-size: 19pt; margin: 0 0 18mm; }
+            .report-rule { border-top: 1px solid #bbb; margin-bottom: 15mm; }
+            .report-info { width: 76%; margin: auto; padding: 10mm 14mm; background: #f7f7f7; border: 1px solid #ddd; }
+            .report-info div { display: grid; grid-template-columns: 45% 55%; padding: 3.5mm 0; }
+            .report-info strong { color: #333; }
+            .report-footer { position: absolute; bottom: 0; width: 100%; text-align: center; color: #888; font-size: 9pt; }
+            .report-page { page-break-before: always; }
+            .report-page:first-of-type { page-break-before: auto; }
+            .report-heading { color: #666; font-size: 16pt; text-align: center; margin: 0 0 12mm; }
+            .report-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10mm; }
+            .report-table th { background: #ff8c00; color: #fff; font-weight: 700; }
+            .report-table th, .report-table td { border: 1px solid #ddd; padding: 2.8mm; text-align: center; }
+            .report-table tr:nth-child(even) td { background: #fafafa; }
+            .report-table .bad { color: #c00000; font-weight: 700; }
+            .report-table .good { color: #16803c; font-weight: 700; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ Weight to Weight</h1>
+        <div class="subtitle">RTOM – W2W cycle detection from Excel</div>
+
+        <!-- Upload -->
+        <div class="upload-card" id="uploadCard">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📁</div>
+            <p style="color: #64748b; margin-bottom: 0.75rem;">
+                Drop your <strong>.xls</strong> or <strong>.xlsx</strong> file here
+            </p>
+            <label class="upload-label" id="fileLabel" for="fileInput">Choose file</label>
+            <input type="file" id="fileInput" accept=".xls,.xlsx" />
+            <div class="file-name" id="fileName">No file selected</div>
+            <div class="report-fields">
+                <label>Well name<input id="wellName" type="text" placeholder="e.g. TXNO-11" /></label>
+                <label>Rig name<input id="rigName" type="text" placeholder="e.g. TP 184" /></label>
+                <label>Phase<input id="phase" type="text" placeholder="e.g. 8 1/2 in" /></label>
+                <label>Rotary system<input id="rotarySystem" type="text" placeholder="e.g. Top drive" /></label>
+                <label>Drill pipe<input id="drillPipe" type="text" placeholder="e.g. 5 in" /></label>
+                <label>Last casing shoe<input id="lastCsgShoe" type="text" placeholder="e.g. 2,500 m" /></label>
+                <label>Run No.<input id="runNo" type="text" placeholder="e.g. 3" /></label>
+                <label>BHA name<input id="bhaName" type="text" placeholder="BHA description" /></label>
+                <label>W2W benchmark (min)<input id="benchmarkMinutes" type="number" min="0" step="0.01" placeholder="e.g. 12.00" /></label>
+            </div>
+            <button class="btn-calc" id="calcBtn" disabled>Calculate W2W</button>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="resultsContainer">
+            <div class="report-actions" id="reportActions">
+                <button class="btn-download" id="downloadPdfBtn" type="button">Download PDF report</button>
+            </div>
+            <!-- Metadata -->
+            <div class="metadata-grid" id="metadataGrid"></div>
+
+            <!-- Global metrics -->
+            <div class="section-title">📊 Global Metrics</div>
+            <div class="metrics-grid" id="metricsGrid"></div>
+
+            <!-- Cycles -->
+            <div class="section-title">📋 Cycle Details</div>
+            <div class="table-wrap" id="tableWrap">
+                <div id="cycleTableContainer"></div>
+            </div>
+        </div>
+
+        <section class="pdf-report" id="pdfReport" aria-hidden="true"></section>
+    </div>
+
+    <script>
+        (function() {
+            // DOM refs
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const calcBtn = document.getElementById('calcBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const metadataGrid = document.getElementById('metadataGrid');
+            const metricsGrid = document.getElementById('metricsGrid');
+            const cycleTableContainer = document.getElementById('cycleTableContainer');
+            const uploadCard = document.getElementById('uploadCard');
+            const reportActions = document.getElementById('reportActions');
+            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+            const pdfReport = document.getElementById('pdfReport');
+
+            let selectedFile = null;
+            let lastResult = null;
+
+            // --- Drag & drop ---
+            uploadCard.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadCard.classList.add('dragover');
+            });
+            uploadCard.addEventListener('dragleave', () => {
+                uploadCard.classList.remove('dragover');
+            });
+            uploadCard.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadCard.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+
+            function handleFile(file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (!['xls', 'xlsx'].includes(ext)) {
+                    showError('Only .xls and .xlsx files are supported.');
+                    selectedFile = null;
+                    calcBtn.disabled = true;
+                    fileName.textContent = 'Invalid file type';
+                    return;
+                }
+                hideError();
+                selectedFile = file;
+                fileName.textContent = file.name;
+                calcBtn.disabled = false;
+                resultsContainer.classList.remove('visible');
+                reportActions.classList.remove('visible');
+            }
+
+            // --- Calculate ---
+            calcBtn.addEventListener('click', async () => {
+                if (!selectedFile) return;
+
+                calcBtn.disabled = true;
+                calcBtn.classList.add('loading');
+                hideError();
+                resultsContainer.classList.remove('visible');
+
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                try {
+                    const response = await fetch('/api/calculate/w2w', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const data = await response.json();
+
+                    if (!response.ok || (data.status && data.status !== 'success') || data.success === false) {
+                        throw new Error(data.message || data.error || 'Server error');
+                    }
+                    displayResults(data.data);
+                } catch (err) {
+                    showError(err.message || 'An unexpected error occurred.');
+                } finally {
+                    calcBtn.disabled = false;
+                    calcBtn.classList.remove('loading');
+                }
+            });
+
+            // --- Display results ---
+            function fmt(value, digits = 2, fallback = '—') {
+                const n = Number(value);
+                return Number.isFinite(n) ? n.toFixed(digits) : fallback;
+            }
+
+            function displayResults(data) {
+                lastResult = data;
+                const metrics = data.global_metrics || {};
+                const cycles = data.cycles || [];
+
+                // Metadata
+                const metaItems = [
+                    { label: 'Input rows', value: data.input_rows ?? '—' },
+                    { label: 'Clean rows', value: data.clean_rows ?? '—' },
+                    { label: 'Dropped rows', value: data.dropped_rows ?? '—' },
+                    { label: 'WOB available', value: data.wob_available ? 'Yes' : 'No' },
+                    { label: 'Slip threshold (ton)', value: fmt(data.slip_threshold_ton, 3) },
+                    { label: 'WOB threshold (ton)', value: fmt(data.wob_threshold_ton, 3, 'N/A') },
+                ];
+                metadataGrid.innerHTML = metaItems.map(m => `
+                    <div class="metadata-item">
+                        <div class="value">${m.value}</div>
+                        <div class="label">${m.label}</div>
+                    </div>
+                `).join('');
+
+                // Global metrics
+                const metricItems = [
+                    { label: 'Total cycles', value: metrics.total_cycles ?? 0, cls: '' },
+                    { label: 'Normal', value: metrics.normal_cycles ?? 0, cls: 'normal' },
+                    { label: 'Abnormal', value: metrics.abnormal_cycles ?? 0, cls: 'abnormal' },
+                    { label: 'Avg W2W (min)', value: fmt(metrics.avg_w2w_minutes), cls: '' },
+                    { label: 'Avg pre (min)', value: fmt(metrics.avg_pre_connection_minutes), cls: '' },
+                    { label: 'Avg conn (min)', value: fmt(metrics.avg_connection_minutes), cls: '' },
+                    { label: 'Avg post (min)', value: fmt(metrics.avg_post_connection_minutes), cls: '' },
+                    { label: 'Total W2W (min)', value: fmt(metrics.total_w2w_minutes, 2, '0'), cls: '' },
+                    { label: 'Min W2W (min)', value: fmt(metrics.min_w2w_minutes), cls: '' },
+                    { label: 'Max W2W (min)', value: fmt(metrics.max_w2w_minutes), cls: '' },
+                    { label: 'Min conn (min)', value: fmt(metrics.min_connection_minutes), cls: '' },
+                    { label: 'Max conn (min)', value: fmt(metrics.max_connection_minutes), cls: '' },
+                    { label: 'Best conn #', value: metrics.best_connection_index ?? '—', cls: '' },
+                    { label: 'Worst conn #', value: metrics.worst_connection_index ?? '—', cls: '' },
+                ];
+                metricsGrid.innerHTML = metricItems.map(m => `
+                    <div class="metric-card">
+                        <div class="value ${m.cls}">${m.value}</div>
+                        <div class="label">${m.label}</div>
+                    </div>
+                `).join('');
+
+                // Cycle table
+                if (cycles.length === 0) {
+                    cycleTableContainer.innerHTML = `<div class="no-cycles">No cycles detected.</div>`;
+                } else {
+                    let html = `<table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Type</th>
+                                <th>Depth (m)</th>
+                                <th>Pre start</th>
+                                <th>Slip in</th>
+                                <th>Slip out</th>
+                                <th>Post end</th>
+                                <th>Pre (min)</th>
+                                <th>Conn (min)</th>
+                                <th>Post (min)</th>
+                                <th>W2W (min)</th>
+                                <th>BPOS rise (m)</th>
+                                <th>DBTM Δ (m)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+
+                    cycles.forEach(c => {
+                        const abnormal = c.abnormal || false;
+                        const reasons = c.abnormal_reasons || [];
+                        const statusBadge = abnormal
+                            ? `<span class="badge badge-abnormal" title="${reasons.join('; ')}">Abnormal</span>`
+                            : `<span class="badge badge-normal">Normal</span>`;
+                        const typeBadge = c.connection_type === 'stand'
+                            ? `<span class="badge badge-stand">Stand</span>`
+                            : `<span class="badge badge-joint">Joint</span>`;
+
+                        html += `<tr class="${abnormal ? 'abnormal-row' : ''}">
+                            <td>${c.cycle_number ?? '—'}</td>
+                            <td>${typeBadge}</td>
+                            <td>${fmt(c.depth_dmea_m)}</td>
+                            <td>${formatDate(c.date_pre_start)}</td>
+                            <td>${formatDate(c.date_slip_in)}</td>
+                            <td>${formatDate(c.date_slip_out)}</td>
+                            <td>${formatDate(c.date_post_end)}</td>
+                            <td>${fmt(c.pre_connection_minutes)}</td>
+                            <td>${fmt(c.connection_minutes)}</td>
+                            <td>${fmt(c.post_connection_minutes)}</td>
+                            <td>${fmt(c.w2w_minutes)}</td>
+                            <td>${fmt(c.pre_bpos_change_m)}</td>
+                            <td>${fmt(c.conn_dbtm_change_m)}</td>
+                            <td>${statusBadge}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table>`;
+                    cycleTableContainer.innerHTML = html;
+                }
+
+                resultsContainer.classList.add('visible');
+                reportActions.classList.add('visible');
+            }
+
+            downloadPdfBtn.addEventListener('click', () => {
+                if (!lastResult) return;
+                renderPdfReport(lastResult);
+                window.print();
+            });
+
+            function renderPdfReport(data) {
+                const cycles = data.cycles || [];
+                const metrics = data.global_metrics || {};
+                const firstCycle = cycles[0];
+                const lastCycle = cycles[cycles.length - 1];
+                const period = firstCycle && lastCycle
+                    ? `${formatDate(firstCycle.date_pre_start)} - ${formatDate(lastCycle.date_post_end)}`
+                    : 'N/A';
+                const value = (id) => escapeHtml(document.getElementById(id).value.trim() || 'N/A');
+                const number = (n) => n == null ? 'N/A' : Number(n).toFixed(2);
+                const benchmark = Number.parseFloat(
+                    document.getElementById('benchmarkMinutes').value
+                );
+                const hasBenchmark = Number.isFinite(benchmark);
+                const actualW2W = metrics.avg_w2w_minutes;
+                const benchmarkRow = hasBenchmark ? `
+                    <tr><td>W2W benchmark (min)</td><td>${number(benchmark)}</td></tr>
+                    <tr><td>W2W difference: benchmark − actual (min)</td><td class="${actualW2W != null && benchmark - actualW2W < 0 ? 'bad' : 'good'}">${actualW2W == null ? 'N/A' : number(benchmark - actualW2W)}</td></tr>` : '';
+                const cycleRows = cycles.length ? cycles.map(c => `
+                    <tr>
+                        <td>${c.cycle_number}</td>
+                        <td>${number(c.pre_connection_minutes)}</td>
+                        <td>${number(c.connection_minutes)}</td>
+                        <td>${number(c.post_connection_minutes)}</td>
+                        <td>${number(c.w2w_minutes)}</td>
+                        <td>${number(c.depth_dmea_m)}</td>
+                        <td class="${c.abnormal ? 'bad' : 'good'}">${c.abnormal ? 'Abnormal' : 'Normal'}</td>
+                    </tr>`).join('') : '<tr><td colspan="7">No cycles detected.</td></tr>';
+
+                pdfReport.innerHTML = `
+                    <article class="report-cover">
+                        <div class="report-banner"></div>
+                        <div class="report-brand">RTOM SONATRACH</div>
+                        <h1 class="report-title">Weight To Weight Analysis Report</h1>
+                        <div class="report-rule"></div>
+                        <div class="report-info">
+                            <div><strong>Well Name:</strong><span>${value('wellName')}</span></div>
+                            <div><strong>Rig Name:</strong><span>${value('rigName')}</span></div>
+                            <div><strong>Phase:</strong><span>${value('phase')}</span></div>
+                            <div><strong>Rotary System:</strong><span>${value('rotarySystem')}</span></div>
+                            <div><strong>Drill Pipe:</strong><span>${value('drillPipe')}</span></div>
+                            <div><strong>Last Casing Shoe:</strong><span>${value('lastCsgShoe')}</span></div>
+                            <div><strong>Run No.:</strong><span>${value('runNo')}</span></div>
+                            <div><strong>BHA Name:</strong><span>${value('bhaName')}</span></div>
+                            <div><strong>Analysis period:</strong><span>${escapeHtml(period)}</span></div>
+                            <div><strong>Source file:</strong><span>${escapeHtml(selectedFile?.name || 'N/A')}</span></div>
+                        </div>
+                        <div class="report-footer">Generated automatically by RTOM Sonatrach Analysis Tool</div>
+                    </article>
+                    <article class="report-page">
+                        <h2 class="report-heading">Weight To Weight Summary</h2>
+                        <table class="report-table">
+                            <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+                            <tbody>
+                                <tr><td>Total cycles</td><td>${metrics.total_cycles ?? 0}</td></tr>
+                                <tr><td>Normal cycles</td><td>${metrics.normal_cycles ?? 0}</td></tr>
+                                <tr><td>Abnormal cycles</td><td>${metrics.abnormal_cycles ?? 0}</td></tr>
+                                <tr><td>Average W2W time (min)</td><td>${number(metrics.avg_w2w_minutes)}</td></tr>
+                                <tr><td>Average connection time (min)</td><td>${number(metrics.avg_connection_minutes)}</td></tr>
+                                <tr><td>Average pre-connection time (min)</td><td>${number(metrics.avg_pre_connection_minutes)}</td></tr>
+                                <tr><td>Average post-connection time (min)</td><td>${number(metrics.avg_post_connection_minutes)}</td></tr>
+                                ${benchmarkRow}
+                                <tr><td>Best connection #</td><td>${metrics.best_connection_index ?? 'N/A'}</td></tr>
+                                <tr><td>Worst connection #</td><td>${metrics.worst_connection_index ?? 'N/A'}</td></tr>
+                            </tbody>
+                        </table>
+                    </article>
+                    <article class="report-page">
+                        <h2 class="report-heading">Detailed Connections Data</h2>
+                        <table class="report-table">
+                            <thead><tr><th>Conn No.</th><th>Pre-Conn (min)</th><th>Conn (min)</th><th>Post-Conn (min)</th><th>W2W (min)</th><th>Depth (m)</th><th>Comment</th></tr></thead>
+                            <tbody>${cycleRows}</tbody>
+                        </table>
+                    </article>`;
+            }
+
+            function escapeHtml(value) {
+                return String(value).replace(/[&<>'"]/g, char => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+                })[char]);
+            }
+
+            // --- Helpers ---
+            function formatDate(iso) {
+                if (!iso) return '—';
+                try {
+                    const d = new Date(iso);
+                    return d.toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
+                } catch {
+                    return iso;
+                }
+            }
+
+            function showError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.style.display = 'block';
+            }
+
+            function hideError() {
+                errorMsg.style.display = 'none';
+                errorMsg.textContent = '';
+            }
+        })();
+    </script>
+</body>
+</html>
