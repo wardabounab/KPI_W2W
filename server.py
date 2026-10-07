@@ -1,131 +1,146 @@
 """
 server.py — Flask REST API
-Exposes calculation endpoints for Tripping Speed and Weight-to-Weight (W2W).
+Endpoints for Tripping Speed and Weight-to-Weight (W2W) + exports.
 """
 
+import io
 import os
-from flask import Flask, request, render_template, jsonify
-import pandas as pd
-from typing import Optional
 
+from flask import Flask, request, render_template, jsonify, send_file
+import pandas as pd
+
+from calculations.Dropdowns import WELLS, RIGS, PHASES, ROTARY_SYSTEMS, DRILL_PIPES, BHA
 from calculations.tripping_speed import calculate_tripping_speed
-from calculations.w2w import calculate_w2w
+from calculations.w2w import calculate_w2w, parse_config, build_export
 
 app = Flask(__name__)
+
+ALLOWED_EXTENSIONS = {"xlsx", "xls", "csv"}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-ALLOWED_EXTENSIONS = {"xlsx", "xls"}
-
-
 def _allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def _read_excel(request_files) -> Optional[pd.DataFrame]:
-    """
-    Validates and reads the uploaded Excel file from the multipart request.
-    Returns a DataFrame or raises a ValueError with a descriptive message.
-    """
+def _read_dataframe(request_files) -> pd.DataFrame:
+    """Reads the uploaded file (Excel or CSV) into a DataFrame."""
     if "file" not in request_files:
         raise ValueError("No file part found in the request. Use key 'file'.")
 
     file = request_files["file"]
-
     if file.filename == "":
         raise ValueError("No file selected.")
-
     if not _allowed_file(file.filename):
-        raise ValueError(f"Unsupported file type. Allowed: {ALLOWED_EXTENSIONS}")
+        raise ValueError(f"Unsupported file type. Allowed: {sorted(ALLOWED_EXTENSIONS)}")
 
-    # Try reading with pandas. If a legacy .xls file is uploaded and the
-    # optional `xlrd` engine is not installed, provide a helpful error.
     ext = file.filename.rsplit(".", 1)[1].lower()
     try:
+        if ext == "csv":
+            raw = file.read()
+            if isinstance(raw, bytes):
+                try:
+                    text = raw.decode("utf-8-sig")
+                except UnicodeDecodeError:
+                    text = raw.decode("latin-1")
+            else:
+                text = raw
+            sep = ";" if text.count(";") > text.count(",") else ","
+            return pd.read_csv(io.StringIO(text), sep=sep)
+
         if ext == "xls":
-            # Older Excel BIFF format may require the 'xlrd' package.
             try:
-                df = pd.read_excel(file, engine="xlrd")
+                return pd.read_excel(file, engine="xlrd")
             except ImportError as ie:
                 raise ValueError(
                     "Reading .xls files requires the 'xlrd' package. "
                     "Install it with: pip install xlrd"
                 ) from ie
-        else:
-            df = pd.read_excel(file)
-    except ValueError as ve:
-        # Re-raise as ValueError with friendly message
-        raise ValueError(f"Could not read Excel file: {ve}") from ve
 
-    return df
+        return pd.read_excel(file)
+
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError(f"Could not read file: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
-# Routes
+# Routes  (UNE SEULE fois par endpoint !)
 # ---------------------------------------------------------------------------
+
 @app.route("/")
 def index():
-    """
-    Renders the local ad-hoc web testing dashboard.
-    Flask expects 'index.html' to live inside a adjacent '/templates' directory.
-    """
-    return render_template("index.html")
+    """Renders the dashboard and injects the dropdown reference lists."""
+    return render_template(
+        "index.html",
+        wells=WELLS,
+        rigs=RIGS,
+        phases=PHASES,
+        rotary_systems=ROTARY_SYSTEMS,
+        drill_pipes=DRILL_PIPES,
+        bha_names=BHA,
+    )
 
 
 @app.post("/api/calculate/tripping")
 def tripping():
-    """
-    Calculate tripping speed from an uploaded Excel file.
-
-    Request  : multipart/form-data  — field name: 'file'  (.xlsx / .xls)
-    Response : application/json     — calculation results or error detail
-    """
     try:
-        df = _read_excel(request.files)
+        df = _read_dataframe(request.files)
         result = calculate_tripping_speed(df)
         return jsonify({"status": "success", "data": result}), 200
-
     except ValueError as exc:
         return jsonify({"status": "error", "message": str(exc)}), 400
-
     except Exception as exc:
-        # Catch unexpected errors and return a safe message.
-        app.logger.exception("Unhandled error in /calculate/tripping")
-        return jsonify({"status": "error", "message": "Internal server error.", "detail": str(exc)}), 500
+        app.logger.exception("Unhandled error in /api/calculate/tripping")
+        return jsonify({"status": "error", "message": "Internal server error.",
+                        "detail": str(exc)}), 500
 
 
 @app.post("/api/calculate/w2w")
 def w2w():
-    """
-    Calculate weight-to-weight (W2W) from an uploaded Excel file.
-
-    Request  : multipart/form-data  — field name: 'file'  (.xlsx / .xls)
-    Response : application/json     — calculation results or error detail
-    """
     try:
-        df = _read_excel(request.files)
-        result = calculate_w2w(df)
+        df = _read_dataframe(request.files)
+        cfg = parse_config(request.form)
+        result = calculate_w2w(df, cfg=cfg)
         return jsonify({"status": "success", "data": result}), 200
-
     except ValueError as exc:
         return jsonify({"status": "error", "message": str(exc)}), 400
-
     except Exception as exc:
-        app.logger.exception("Unhandled error in /calculate/w2w")
-        return jsonify({"status": "error", "message": "Internal server error.", "detail": str(exc)}), 500
+        app.logger.exception("Unhandled error in /api/calculate/w2w")
+        return jsonify({"status": "error", "message": "Internal server error.",
+                        "detail": str(exc)}), 500
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+@app.post("/api/export/<fmt>")
+def export(fmt):
+    """Exports the (possibly filtered) cycles to CSV or XLSX."""
+    if fmt not in ("csv", "xlsx"):
+        return jsonify({"status": "error",
+                        "message": "Unsupported export format."}), 400
+    try:
+        payload = request.get_json(silent=True) or {}
+        data = payload.get("data") or {}
+        meta = payload.get("meta") or {}
+        blob, mimetype, filename = build_export(fmt, data, meta)
+        return send_file(
+            io.BytesIO(blob),
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=filename,
+        )
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+    except Exception as exc:
+        app.logger.exception("Unhandled error in /api/export/%s", fmt)
+        return jsonify({"status": "error", "message": "Internal server error.",
+                        "detail": str(exc)}), 500
+
 
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    
-    # Remplacer 5060 par 5000 (qui est un port sûr et autorisé par les navigateurs)
     port = int(os.getenv("PORT", 5000))
-
-    # Lancement du serveur
     app.run(host="0.0.0.0", debug=debug_mode, port=port)

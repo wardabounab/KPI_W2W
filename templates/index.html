@@ -3,718 +3,780 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RTOM Weight to Weight</title>
-    <style>
-        /* Reset & base */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f5f7fa;
-            color: #1e293b;
-            padding: 2rem 1rem;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            max-width: 1200px;
-            width: 100%;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-            padding: 2rem 2rem 3rem;
-        }
+    <title>RTOM · Weight to Weight</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-        h1 {
-            font-weight: 600;
-            font-size: 1.8rem;
-            margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .subtitle {
-            color: #64748b;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 1rem;
-        }
-
-        /* Upload card */
-        .upload-card {
-            background: #f8fafc;
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 2rem 1.5rem;
-            text-align: center;
-            transition: border-color 0.2s;
-            margin-bottom: 2rem;
-        }
-        .upload-card.dragover {
-            border-color: #3b82f6;
-            background: #eff6ff;
-        }
-        .upload-card input[type="file"] {
-            display: none;
-        }
-        .upload-label {
-            display: inline-block;
-            background: #3b82f6;
-            color: #fff;
-            padding: 0.6rem 1.8rem;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 0.5rem;
-        }
-        .upload-label:hover {
-            background: #2563eb;
-        }
-        .upload-label:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .file-name {
-            margin-top: 0.75rem;
-            font-size: 0.95rem;
-            color: #475569;
-        }
-        .btn-calc {
-            background: #0f172a;
-            color: #fff;
-            border: none;
-            padding: 0.6rem 2.2rem;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 1rem;
-        }
-        .btn-calc:hover:not(:disabled) {
-            background: #1e293b;
-        }
-        .btn-calc:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-calc.loading {
-            position: relative;
-            color: transparent;
-        }
-        .btn-calc.loading::after {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 1.2rem;
-            height: 1.2rem;
-            margin: -0.6rem 0 0 -0.6rem;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        .report-fields {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 0.75rem;
-            margin: 1.25rem auto 0;
-            max-width: 760px;
-            text-align: left;
-        }
-        .report-fields label {
-            color: #475569;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .report-fields input {
-            width: 100%;
-            margin-top: 0.3rem;
-            padding: 0.55rem 0.65rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font: inherit;
-        }
-        .report-actions {
-            display: none;
-            justify-content: flex-end;
-            margin-bottom: 1rem;
-        }
-        .report-actions.visible {
-            display: flex;
-        }
-        .btn-download {
-            background: #166534;
-            color: #fff;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 0.95rem;
-            cursor: pointer;
-        }
-        .btn-download:hover {
-            background: #14532d;
-        }
-        .pdf-report {
-            display: none;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error-msg {
-            background: #fef2f2;
-            color: #b91c1c;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            border: 1px solid #fecaca;
-            margin-top: 1rem;
-            display: none;
-            white-space: pre-wrap;
-        }
-
-        /* Results */
-        .results {
-            display: none;
-            margin-top: 2rem;
-        }
-        .results.visible {
-            display: block;
-        }
-
-        .section-title {
-            font-weight: 600;
-            font-size: 1.2rem;
-            margin: 1.8rem 0 1rem;
-        }
-
-        /* Metadata row */
-        .metadata-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.75rem;
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 1rem 1.2rem;
-            border: 1px solid #e2e8f0;
-            margin-bottom: 2rem;
-        }
-        .metadata-item {
-            text-align: center;
-        }
-        .metadata-item .value {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        .metadata-item .label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #64748b;
-        }
-
-        /* Metrics cards */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .metric-card {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 1rem 1.2rem;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-        .metric-card .value {
-            font-size: 1.6rem;
-            font-weight: 600;
-            color: #0f172a;
-        }
-        .metric-card .label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #64748b;
-            margin-top: 0.2rem;
-        }
-        .metric-card .value.abnormal {
-            color: #b91c1c;
-        }
-        .metric-card .value.normal {
-            color: #166534;
-        }
-
-        /* Table */
-        .table-wrap {
-            overflow-x: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-        th {
-            background: #f1f5f9;
-            padding: 0.5rem 0.7rem;
-            text-align: left;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        td {
-            padding: 0.5rem 0.7rem;
-            border-top: 1px solid #e2e8f0;
-            vertical-align: middle;
-        }
-        tr.abnormal-row {
-            background: #fef2f2;
-        }
-        .badge {
-            display: inline-block;
-            font-size: 0.65rem;
-            font-weight: 600;
-            padding: 0.2rem 0.5rem;
-            border-radius: 20px;
-            text-transform: uppercase;
-        }
-        .badge-normal {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .badge-abnormal {
-            background: #fecaca;
-            color: #b91c1c;
-        }
-        .badge-stand {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        .badge-joint {
-            background: #e0e7ff;
-            color: #3730a3;
-        }
-
-        .no-cycles {
-            color: #64748b;
-            padding: 1.5rem 0;
-            text-align: center;
-        }
-
-        @media (max-width: 640px) {
-            .container { padding: 1.5rem; }
-            .metrics-grid { grid-template-columns: 1fr 1fr; }
-            .metadata-grid { grid-template-columns: 1fr 1fr; }
-            .upload-card { padding: 1.5rem 1rem; }
-        }
-
-        @media print {
-            @page { margin: 15mm; }
-            body { background: #fff; padding: 0; }
-            .container { max-width: none; box-shadow: none; padding: 0; }
-            .container > * { display: none !important; }
-            .container > .pdf-report { display: block !important; }
-            .pdf-report { color: #333; font-family: Arial, sans-serif; }
-            .report-cover { min-height: 260mm; position: relative; page-break-after: always; }
-            .report-banner { height: 42mm; background: #ff8c00; margin: -15mm -15mm 28mm; }
-            .report-brand { position: absolute; top: 22mm; width: 100%; text-align: center; font-size: 23pt; font-weight: 700; }
-            .report-title { text-align: center; font-size: 19pt; margin: 0 0 18mm; }
-            .report-rule { border-top: 1px solid #bbb; margin-bottom: 15mm; }
-            .report-info { width: 76%; margin: auto; padding: 10mm 14mm; background: #f7f7f7; border: 1px solid #ddd; }
-            .report-info div { display: grid; grid-template-columns: 45% 55%; padding: 3.5mm 0; }
-            .report-info strong { color: #333; }
-            .report-footer { position: absolute; bottom: 0; width: 100%; text-align: center; color: #888; font-size: 9pt; }
-            .report-page { page-break-before: always; }
-            .report-page:first-of-type { page-break-before: auto; }
-            .report-heading { color: #666; font-size: 16pt; text-align: center; margin: 0 0 12mm; }
-            .report-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 10mm; }
-            .report-table th { background: #ff8c00; color: #fff; font-weight: 700; }
-            .report-table th, .report-table td { border: 1px solid #ddd; padding: 2.8mm; text-align: center; }
-            .report-table tr:nth-child(even) td { background: #fafafa; }
-            .report-table .bad { color: #c00000; font-weight: 700; }
-            .report-table .good { color: #16803c; font-weight: 700; }
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <h1>⚙️ Weight to Weight</h1>
-        <div class="subtitle">RTOM – W2W cycle detection from Excel</div>
+<body class="font-sans bg-gradient-to-b from-slate-50 to-indigo-50 bg-fixed text-slate-900 min-h-screen flex justify-center py-10 px-5 antialiased">
 
-        <!-- Upload -->
-        <div class="upload-card" id="uploadCard">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📁</div>
-            <p style="color: #64748b; margin-bottom: 0.75rem;">
-                Drop your <strong>.xls</strong> or <strong>.xlsx</strong> file here
-            </p>
-            <label class="upload-label" id="fileLabel" for="fileInput">Choose file</label>
-            <input type="file" id="fileInput" accept=".xls,.xlsx" />
-            <div class="file-name" id="fileName">No file selected</div>
-            <div class="report-fields">
-                <label>Well name<input id="wellName" type="text" placeholder="e.g. TXNO-11" /></label>
-                <label>Rig name<input id="rigName" type="text" placeholder="e.g. TP 184" /></label>
-                <label>Phase<input id="phase" type="text" placeholder="e.g. 8 1/2 in" /></label>
-                <label>Rotary system<input id="rotarySystem" type="text" placeholder="e.g. Top drive" /></label>
-                <label>Drill pipe<input id="drillPipe" type="text" placeholder="e.g. 5 in" /></label>
-                <label>Last casing shoe<input id="lastCsgShoe" type="text" placeholder="e.g. 2,500 m" /></label>
-                <label>Run No.<input id="runNo" type="text" placeholder="e.g. 3" /></label>
-                <label>BHA name<input id="bhaName" type="text" placeholder="BHA description" /></label>
-                <label>W2W benchmark (min)<input id="benchmarkMinutes" type="number" min="0" step="0.01" placeholder="e.g. 12.00" /></label>
+    <div class="app-shell max-w-[1320px] w-full mx-auto">
+
+        <header class="flex items-center gap-3  pb-0">
+            <div>
+                <h1 class="font-bold text-2xl tracking-tight text-slate-900">Weight to Weight</h1>
+                <div class="text-slate-600 text-sm mt-0.5">Drill State</div>
             </div>
-            <button class="btn-calc" id="calcBtn" disabled>Calculate W2W</button>
-            <div class="error-msg" id="errorMsg"></div>
+        </header>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mb-3">
+        <div id="uploadCard"
+             class="upload-card bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl px-6 py-9 text-center transition-all hover:border-indigo-300 hover:bg-indigo-50/30 mb-6">
+
+            <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-white flex items-center justify-center text-2xl shadow-sm border border-slate-200">📁</div>
+            <div class="text-slate-900 font-semibold text-base mb-1">Drop your data file here</div>
+            <div class="text-slate-400 text-sm mb-4">Supports <strong class="text-slate-600">.xls</strong>, <strong class="text-slate-600">.xlsx</strong> and <strong class="text-slate-600">.csv</strong></div>
+        
+
+            <label for="fileInput" class="inline-block bg-indigo-600 text-white px-7 py-2.5 rounded-lg font-semibold text-sm cursor-pointer transition-all shadow-[0_4px_12px_rgba(79,70,229,0.22)] hover:bg-indigo-700 hover:-translate-y-px">Choose file</label>
+            <input type="file" id="fileInput" accept=".xls,.xlsx,.csv" class="hidden" />
+            <div class="file-name mt-3 text-sm text-slate-600 font-medium" id="fileName">No file selected</div>
+        </div>
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3 mt-0 max-w-[920px] mx-auto text-left">
+                <h3 class="col-span-full text-slate-600 font-semibold text-sm uppercase">Well information</h3>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Well name</span>
+                    <input id="wellName" type="text" placeholder="Enter well name" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Rig name</span>
+                    <input id="rigName" type="text" placeholder="Enter rig name" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Phase</span>
+                    <select id="phase" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors">
+                        <option value="">Select...</option>
+                        {% for p in phases %}<option>{{ p }}</option>{% endfor %}
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Rotary system</span>
+                    <select id="rotarySystem" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors">
+                        <option value="">Select...</option>
+                        {% for s in rotary_systems %}<option>{{ s }}</option>{% endfor %}
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Drill pipe</span>
+                    <select id="drillPipe" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors">
+                        <option value="">Select...</option>
+                        {% for size in drill_pipes %}<option>{{ size }}</option>{% endfor %}
+                    </select>
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Last casing shoe</span>
+                    <input id="lastCsgShoe" type="text" placeholder="e.g. 2,500 m" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Run No.</span>
+                    <input id="runNo" type="text" placeholder="e.g. 3" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">BHA name</span>
+                    <select id="bhaName" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors">
+                        <option value="">Select...</option>
+                        {% for name in bha_names %}<option>{{ name }}</option>{% endfor %}
+                    </select>
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">W2W benchmark (min)</span>
+                    <input id="benchmarkMinutes" type="number" min="0" step="0.01" placeholder="e.g. 12.00" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Day shift start (h)</span>
+                    <input id="dayStartH" type="time" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Day shift end (h)</span>
+                    <input id="dayEndH" type="time" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Night shift start (h)</span>
+                    <input id="nightStartH" type="time" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+                <label class="block">
+                    <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Night shift end (h)</span>
+                    <input id="nightEndH" type="time" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                </label>
+            </div>
+
+            <details class="max-w-[920px] mx-auto mt-5 text-left border border-slate-200 rounded-xl bg-white overflow-hidden">
+                <summary class="cursor-pointer px-4 py-3 text-slate-600 font-semibold text-sm list-none flex items-center gap-2 select-none hover:bg-slate-50">
+                    Advanced detection thresholds (optional)
+                </summary>
+                <div class="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-3 mx-4 mb-4">
+                    <label class="block">
+                        <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Slip threshold – HKLD (t)</span>
+                        <input id="slipThreshold" type="number" step="0.01" placeholder="auto" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                    </label>
+                    <label class="block">
+                        <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Lower BPOS limit (m)</span>
+                        <input id="lowerBpos" type="number" step="0.1" placeholder="9" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                    </label>
+                    <label class="block">
+                        <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Upper BPOS limit (m)</span>
+                        <input id="upperBpos" type="number" step="0.1" placeholder="9 (joint) … 31 (stand)" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                    </label>
+                    <label class="block">
+                        <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">Max BPOS rise (m)</span>
+                        <input id="maxRise" type="number" step="0.1" placeholder="31" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                    </label>
+                    <label class="block">
+                        <span class="text-slate-600 text-[0.74rem] font-semibold uppercase tracking-wide">WOB threshold (t)</span>
+                        <input id="wobThreshold" type="number" step="0.1" placeholder="1" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15 transition-colors" />
+                    </label>
+                </div>
+                <div class="text-xs text-slate-400 mx-4 mb-4 leading-relaxed">Leave empty to use defaults. The slip threshold is computed automatically from the hookload when empty — set it per rig if the auto-detection looks wrong.</div>
+            </details>
+
+            <button class="btn btn-primary mt-6 mx-auto flex w-fit items-center justify-center gap-2 px-10 py-3 bg-indigo-600 text-white rounded-lg font-semibold text-[0.95rem] transition-all shadow-[0_4px_12px_rgba(79,70,229,0.22)] hover:bg-indigo-700 hover:-translate-y-px disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:bg-indigo-600"
+                    id="calcBtn" disabled>Calculate W2W</button>
+
+            <div class="hidden mt-5 bg-red-50 text-red-600 px-4 py-3 rounded-lg border border-red-200 text-sm font-medium whitespace-pre-wrap text-left" id="errorMsg"></div>
         </div>
 
-        <!-- Results -->
-        <div class="results" id="resultsContainer">
-            <div class="report-actions" id="reportActions">
-                <button class="btn-download" id="downloadPdfBtn" type="button">Download PDF report</button>
-            </div>
-            <!-- Metadata -->
-            <div class="metadata-grid" id="metadataGrid"></div>
+        <div class="hidden mt-10" id="resultsContainer">
 
-            <!-- Global metrics -->
-            <div class="section-title">📊 Global Metrics</div>
-            <div class="metrics-grid" id="metricsGrid"></div>
+            <div class="flex gap-2.5 justify-end flex-wrap mb-6 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
 
-            <!-- Cycles -->
-            <div class="section-title">📋 Cycle Details</div>
-            <div class="table-wrap" id="tableWrap">
-                <div id="cycleTableContainer"></div>
+                <button class="btn inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-[0_4px_12px_rgba(5,150,105,0.22)] hover:bg-emerald-700 hover:-translate-y-px" id="downloadPdfBtn" type="button">⬇ Download PDF</button>
             </div>
+
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2.5 bg-gradient-to-b from-white to-indigo-50/40 rounded-2xl p-4 border border-slate-200" id="metadataGrid"></div>
+
+            <div class="font-bold text-lg tracking-tight mt-8 mb-4 flex items-center gap-2">🔎 Filters</div>
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 items-end bg-slate-50 border border-slate-200 rounded-xl p-4" id="filters">
+                <label class="block">
+                    <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-wide">Date</span>
+                    <select id="fDate" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15"><option value="">All</option></select>
+                </label>
+                <label class="block">
+                    <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-wide">Shift</span>
+                    <select id="fShift" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15"><option value="">All</option><option>Day</option><option>Night</option></select>
+                </label>
+                <label class="block">
+                    <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-wide">Type</span>
+                    <select id="fType" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15"><option value="">All</option><option value="joint">Joint</option><option value="stand">Stand</option></select>
+                </label>
+                <label class="block">
+                    <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-wide">Status</span>
+                    <select id="fStatus" class="appearance-auto w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 cursor-pointer focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15"><option value="">All</option><option value="normal">Normal</option><option value="abnormal">Abnormal</option></select>
+                </label>
+                <label class="block">
+                    <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-wide">Depth from (m)</span>
+                    <input id="fDepthMin" type="number" step="1" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15" />
+                </label>
+                <label class="block">
+                    <span class="text-[0.7rem] font-bold text-slate-600 uppercase tracking-wide">Depth to (m)</span>
+                    <input id="fDepthMax" type="number" step="1" class="w-full mt-1.5 px-2.5 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/15" />
+                </label>
+                <button class="btn h-[38px] inline-flex items-center justify-center gap-2 bg-white text-slate-900 border border-slate-300 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all shadow-sm hover:bg-slate-50 hover:border-slate-400" id="fReset" type="button">Reset</button>
+            </div>
+
+            <div class="font-bold text-lg tracking-tight mt-8 mb-4 flex items-center gap-2">📊 Global metrics <span class="text-xs font-medium text-slate-400 normal-case tracking-normal ml-1" id="kpiNote"></span></div>
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3.5" id="metricsGrid"></div>
+
+            <div class="font-bold text-lg tracking-tight mt-8 mb-4 flex items-center gap-2">📈 Charts</div>
+            <div class="grid gap-4">
+                <div class="border border-slate-200 rounded-xl px-4 py-3.5 bg-white shadow-sm">
+                    <h3 class="text-sm font-semibold mb-2.5 text-slate-600">W2W per connection — breakdown (pre / connection / post)</h3>
+                    <div id="chartBars"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 max-[860px]:grid-cols-1">
+                    <div class="border border-slate-200 rounded-xl px-4 py-3.5 bg-white shadow-sm"><h3 class="text-sm font-semibold mb-2.5 text-slate-600">W2W distribution</h3><div id="chartHist"></div></div>
+                    <div class="border border-slate-200 rounded-xl px-4 py-3.5 bg-white shadow-sm"><h3 class="text-sm font-semibold mb-2.5 text-slate-600">W2W evolution over time</h3><div id="chartLine"></div></div>
+                </div>
+            </div>
+
+            <div class="font-bold text-lg tracking-tight mt-8 mb-4 flex items-center gap-2">
+                📋 Cycle details
+                <span class="text-xs font-medium text-slate-400 normal-case tracking-normal ml-1">(tick = included in KPIs; abnormal cycles are excluded by default)</span>
+            </div>
+            <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-sm"><div id="cycleTableContainer"></div></div>
+
+            <div class="font-bold text-lg tracking-tight mt-8 mb-4 flex items-center gap-2">📅 Daily summary</div>
+            <div class="overflow-x-auto border border-slate-200 rounded-xl shadow-sm"><div id="dailyContainer"></div></div>
+
+            <div class="font-bold text-lg tracking-tight mt-8 mb-4 flex items-center gap-2">🛡️ Data quality &amp; insights</div>
+            <div class="text-slate-800" id="qualityContainer"></div>
         </div>
 
-        <section class="pdf-report" id="pdfReport" aria-hidden="true"></section>
+        <section class="hidden" id="pdfReport" aria-hidden="true"></section>
     </div>
 
+    {% raw %}
     <script>
-        (function() {
-            // DOM refs
-            const fileInput = document.getElementById('fileInput');
-            const fileName = document.getElementById('fileName');
-            const calcBtn = document.getElementById('calcBtn');
-            const errorMsg = document.getElementById('errorMsg');
-            const resultsContainer = document.getElementById('resultsContainer');
-            const metadataGrid = document.getElementById('metadataGrid');
-            const metricsGrid = document.getElementById('metricsGrid');
-            const cycleTableContainer = document.getElementById('cycleTableContainer');
-            const uploadCard = document.getElementById('uploadCard');
-            const reportActions = document.getElementById('reportActions');
-            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-            const pdfReport = document.getElementById('pdfReport');
+    (function () {
+        const $ = (id) => document.getElementById(id);
+        const C = { pre: '#87ceeb', conn: '#f08080', post: '#90ee90', best: '#f5c400', worst: '#8b0000', line: '#2563eb', bad: '#b91c1c', bench: '#f97316' };
 
-            let selectedFile = null;
-            let lastResult = null;
+        let selectedFile = null;
+        let lastResult = null;
+        let excluded = new Set();
 
-            // --- Drag & drop ---
-            uploadCard.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadCard.classList.add('dragover');
-            });
-            uploadCard.addEventListener('dragleave', () => {
-                uploadCard.classList.remove('dragover');
-            });
-            uploadCard.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadCard.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    handleFile(files[0]);
-                }
-            });
+        const num = (v, d = 2, fb = '—') => {
+            if (v === null || v === undefined || v === '') return fb;
+            const n = Number(v);
+            return Number.isFinite(n) ? n.toFixed(d) : fb;
+        };
+        const esc = (v) => String(v ?? '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[ch]);
+        const fmtDate = (iso) => {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            if (isNaN(d)) return esc(iso);
+            return d.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        };
+        const fmtHM = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }); };
+        const benchmark = () => { const b = parseFloat($('benchmarkMinutes').value); return Number.isFinite(b) && b > 0 ? b : null; };
+        const showError = (m) => { $('errorMsg').textContent = m; $('errorMsg').classList.remove('hidden'); };
+        const hideError = () => { $('errorMsg').classList.add('hidden'); $('errorMsg').textContent = ''; };
+        function enablePdfTailwind() {
+            const shell = document.querySelector('.app-shell');
+            const report = $('pdfReport');
+            const state = {
+                body: document.body.className,
+                shell: shell.className,
+                children: [...shell.children].map(el => [el, el.className]),
+            };
+            document.body.className = 'font-sans bg-white text-[#333] m-0 p-0 block w-[210mm] min-h-0';
+            shell.className = 'w-[210mm] min-w-[210mm] max-w-none m-0 p-0 bg-white shadow-none border-0 rounded-none';
+            [...shell.children].forEach(el => { if (el !== report) el.classList.add('hidden'); });
+            report.className = 'block w-[210mm] min-w-[210mm] m-0 p-0 text-center box-border text-[#333] font-sans bg-white';
+            return state;
+        }
+        function restorePageClasses(state) {
+            if (!state) return;
+            document.body.className = state.body;
+            const shell = document.querySelector('.app-shell');
+            shell.className = state.shell;
+            state.children.forEach(([el, className]) => { el.className = className; });
+        }
+        const timeToHours = (v) => {
+            if (!v) return '';
+            const [h, m] = v.split(':').map(Number);
+            if (!Number.isFinite(h)) return '';
+            return String(h + (m || 0) / 60);
+        };
 
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFile(e.target.files[0]);
-                }
-            });
+        const card = $('uploadCard');
+        const dragoverClasses = ['border-indigo-600', 'bg-indigo-50', 'scale-[1.005]'];
+        card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add(...dragoverClasses); });
+        card.addEventListener('dragleave', () => card.classList.remove(...dragoverClasses));
+        card.addEventListener('drop', e => { e.preventDefault(); card.classList.remove(...dragoverClasses); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+        $('fileInput').addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
-            function handleFile(file) {
-                const ext = file.name.split('.').pop().toLowerCase();
-                if (!['xls', 'xlsx'].includes(ext)) {
-                    showError('Only .xls and .xlsx files are supported.');
-                    selectedFile = null;
-                    calcBtn.disabled = true;
-                    fileName.textContent = 'Invalid file type';
-                    return;
-                }
-                hideError();
-                selectedFile = file;
-                fileName.textContent = file.name;
-                calcBtn.disabled = false;
-                resultsContainer.classList.remove('visible');
-                reportActions.classList.remove('visible');
+        function handleFile(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['xls', 'xlsx', 'csv'].includes(ext)) {
+                showError('Only .xls, .xlsx and .csv files are supported.');
+                selectedFile = null; $('calcBtn').disabled = true;
+                $('fileName').textContent = 'Invalid file type';
+                $('fileName').classList.remove('text-emerald-600');
+                return;
             }
+            hideError();
+            selectedFile = file;
+            $('fileName').textContent = file.name;
+            $('fileName').classList.add('text-emerald-600');
+            $('calcBtn').disabled = false;
+            $('resultsContainer').classList.add('hidden');
+        }
 
-            // --- Calculate ---
-            calcBtn.addEventListener('click', async () => {
-                if (!selectedFile) return;
+        $('calcBtn').addEventListener('click', async () => {
+            if (!selectedFile) return;
+            const btn = $('calcBtn');
+            const originalButtonHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="inline-block size-4 border-[3px] border-white/35 border-t-white rounded-full animate-spin" aria-hidden="true"></span><span>Calculating...</span>';
+            hideError();
+            $('resultsContainer').classList.add('hidden');
 
-                calcBtn.disabled = true;
-                calcBtn.classList.add('loading');
-                hideError();
-                resultsContainer.classList.remove('visible');
+            const fd = new FormData();
+            fd.append('file', selectedFile);
 
-                const formData = new FormData();
-                formData.append('file', selectedFile);
+            const opt = {
+                slip_threshold: 'slipThreshold', lower_bpos: 'lowerBpos', upper_bpos: 'upperBpos',
+                max_rise: 'maxRise', wob_threshold: 'wobThreshold', benchmark: 'benchmarkMinutes',
+            };
+            Object.entries(opt).forEach(([k, id]) => { const v = $(id).value.trim(); if (v !== '') fd.append(k, v); });
 
-                try {
-                    const response = await fetch('/api/calculate/w2w', {
-                        method: 'POST',
-                        body: formData,
-                    });
-                    const data = await response.json();
+            const dayS = timeToHours($('dayStartH').value);
+            const dayE = timeToHours($('dayEndH').value);
+            if (dayS !== '') fd.append('day_start_h', dayS);
+            if (dayE !== '') fd.append('day_end_h', dayE);
 
-                    if (!response.ok || (data.status && data.status !== 'success') || data.success === false) {
-                        throw new Error(data.message || data.error || 'Server error');
-                    }
-                    displayResults(data.data);
-                } catch (err) {
-                    showError(err.message || 'An unexpected error occurred.');
-                } finally {
-                    calcBtn.disabled = false;
-                    calcBtn.classList.remove('loading');
-                }
-            });
-
-            // --- Display results ---
-            function fmt(value, digits = 2, fallback = '—') {
-                const n = Number(value);
-                return Number.isFinite(n) ? n.toFixed(digits) : fallback;
+            try {
+                const res = await fetch('/api/calculate/w2w', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok || data.status === 'error') throw new Error(data.message || 'Server error');
+                displayResults(data.data);
+            } catch (err) {
+                showError(err.message || 'An unexpected error occurred.');
+            } finally {
+                btn.disabled = false; btn.innerHTML = originalButtonHtml;
             }
+        });
 
-            function displayResults(data) {
-                lastResult = data;
-                const metrics = data.global_metrics || {};
-                const cycles = data.cycles || [];
+        function getFiltered() {
+            if (!lastResult) return [];
+            const d = $('fDate').value, sh = $('fShift').value, ty = $('fType').value, st = $('fStatus').value;
+            const dmin = parseFloat($('fDepthMin').value), dmax = parseFloat($('fDepthMax').value);
+            return lastResult.cycles.filter(c =>
+                (!d || c.date === d) && (!sh || c.shift === sh) && (!ty || c.connection_type === ty) &&
+                (!st || (st === 'abnormal') === !!c.abnormal) &&
+                (!Number.isFinite(dmin) || c.depth_dmea_m >= dmin) && (!Number.isFinite(dmax) || c.depth_dmea_m <= dmax));
+        }
 
-                // Metadata
-                const metaItems = [
-                    { label: 'Input rows', value: data.input_rows ?? '—' },
-                    { label: 'Clean rows', value: data.clean_rows ?? '—' },
-                    { label: 'Dropped rows', value: data.dropped_rows ?? '—' },
-                    { label: 'WOB available', value: data.wob_available ? 'Yes' : 'No' },
-                    { label: 'Slip threshold (ton)', value: fmt(data.slip_threshold_ton, 3) },
-                    { label: 'WOB threshold (ton)', value: fmt(data.wob_threshold_ton, 3, 'N/A') },
-                ];
-                metadataGrid.innerHTML = metaItems.map(m => `
-                    <div class="metadata-item">
-                        <div class="value">${m.value}</div>
-                        <div class="label">${m.label}</div>
+        function stats(cs) {
+            const inc = cs.filter(c => !excluded.has(c.cycle_number));
+            const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+            const w = inc.map(c => c.w2w_minutes);
+            const s = [...w].sort((a, b) => a - b);
+            const median = s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null;
+            let best = null, worst = null;
+            inc.forEach(c => {
+                if (!best || c.w2w_minutes < best.w2w_minutes) best = c;
+                if (!worst || c.w2w_minutes > worst.w2w_minutes) worst = c;
+            });
+            return {
+                shown: cs.length, n: inc.length, excluded: cs.length - inc.length,
+                abnormal: cs.filter(c => c.abnormal).length,
+                avg: avg(w), median, min: s.length ? s[0] : null, max: s.length ? s[s.length - 1] : null,
+                avgPre: avg(inc.map(c => c.pre_connection_minutes)),
+                avgConn: avg(inc.map(c => c.connection_minutes)),
+                avgPost: avg(inc.map(c => c.post_connection_minutes)),
+                total: w.reduce((x, y) => x + y, 0),
+                best: best ? best.cycle_number : null, worst: worst ? worst.cycle_number : null,
+                joints: inc.filter(c => c.connection_type === 'joint').length,
+                stands: inc.filter(c => c.connection_type === 'stand').length,
+                inc,
+            };
+        }
+
+        function displayResults(data) {
+            lastResult = data;
+            excluded = new Set(data.cycles.filter(c => c.abnormal).map(c => c.cycle_number));
+
+            const q = data.quality || {};
+            $('metadataGrid').innerHTML = [
+                ['Input rows', data.input_rows], ['Clean rows', data.clean_rows], ['Dropped rows', data.dropped_rows],
+                ['WOB available', data.wob_available ? 'Yes' : 'No'],
+                ['Slip threshold (t)', num(data.slip_threshold_ton, 3) + (q.slip_threshold_source === 'manual' ? ' (manual)' : ' (auto)')],
+                ['Data gaps', q.data_gap_count ?? 0], ['Calc. time (s)', num(data.elapsed_seconds, 2)],
+            ].map(([l, v]) => `
+                <div class="text-center py-2 px-1 rounded-[10px] transition-colors hover:bg-slate-50">
+                    <div class="text-lg font-bold text-slate-900 tracking-tight">${esc(v ?? '—')}</div>
+                    <div class="text-[0.68rem] uppercase tracking-wider text-slate-400 font-semibold mt-0.5">${l}</div>
+                </div>`).join('');
+
+            const dates = [...new Set(data.cycles.map(c => c.date))].sort();
+            $('fDate').innerHTML = '<option value="">All</option>' + dates.map(d => `<option>${esc(d)}</option>`).join('');
+            resetFilters(false);
+
+            $('resultsContainer').classList.remove('hidden');
+            $('resultsContainer').classList.add('block');
+            renderAll();
+        }
+
+        function resetFilters(render = true) {
+            ['fDate', 'fShift', 'fType', 'fStatus', 'fDepthMin', 'fDepthMax'].forEach(id => $(id).value = '');
+            if (render) renderAll();
+        }
+        ['fDate', 'fShift', 'fType', 'fStatus', 'fDepthMin', 'fDepthMax'].forEach(id => $(id).addEventListener('input', renderAll));
+        $('fReset').addEventListener('click', () => resetFilters(true));
+
+        function renderAll() {
+            if (!lastResult) return;
+            const cs = getFiltered();
+            const st = stats(cs);
+            renderKpis(st);
+            $('chartBars').innerHTML = barChart(cs, st);
+            $('chartHist').innerHTML = histChart(st.inc);
+            $('chartLine').innerHTML = lineChart(cs);
+            renderTable(cs, st);
+            renderDaily(cs);
+            renderQuality(st);
+        }
+
+        function renderKpis(st) {
+            const b = benchmark();
+            const items = [
+                ['Connections shown', st.shown, ''], ['Included in KPIs', st.n, 'text-emerald-600'],
+                ['Abnormal', st.abnormal, 'text-red-600'], ['Excluded', st.excluded, st.excluded ? 'text-amber-600' : ''],
+                ['Avg W2W (min)', num(st.avg), ''], ['Median W2W (min)', num(st.median), ''],
+                ['Min W2W (min)', num(st.min), ''], ['Max W2W (min)', num(st.max), ''],
+                ['Avg pre (min)', num(st.avgPre), ''], ['Avg conn (min)', num(st.avgConn), ''],
+                ['Avg post (min)', num(st.avgPost), ''], ['Total W2W (min)', num(st.total), ''],
+                ['Best conn #', st.best ?? '—', 'text-emerald-600'], ['Worst conn #', st.worst ?? '—', 'text-red-600'],
+                ['Joints / Stands', `${st.joints} / ${st.stands}`, ''],
+            ];
+            if (b !== null && st.avg !== null) items.push(['Benchmark − avg (min)', num(b - st.avg), (b - st.avg) < 0 ? 'text-red-600' : 'text-emerald-600']);
+
+            $('metricsGrid').innerHTML = items.map(([l, v, c]) => `
+                <div class="bg-white rounded-xl px-4 py-4 text-center border border-slate-200 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="text-2xl font-bold tracking-tight ${c || 'text-slate-900'}">${esc(v)}</div>
+                    <div class="text-[0.68rem] uppercase tracking-wider text-slate-400 font-semibold mt-1">${l}</div>
+                </div>`).join('');
+
+            $('kpiNote').textContent = '— computed on the filtered, included connections';
+        }
+
+        function renderTable(cs, st) {
+            if (!cs.length) {
+                $('cycleTableContainer').innerHTML = '<div class="text-slate-400 py-8 text-center italic text-sm">No cycles for this selection.</div>';
+                return;
+            }
+            const b = benchmark();
+            const th = 'px-3 py-2.5 text-left font-bold whitespace-nowrap text-slate-600 text-[0.72rem] uppercase tracking-wider border-b border-slate-200 bg-slate-50';
+            let h = `<table class="w-full border-collapse text-[0.82rem]"><thead><tr>
+                <th class="${th}">Incl.</th><th class="${th}">#</th><th class="${th}">Type</th><th class="${th}">Shift</th>
+                <th class="${th}">Depth (m)</th><th class="${th}">Pre start</th><th class="${th}">Slip in</th><th class="${th}">Slip out</th>
+                <th class="${th}">Post end</th><th class="${th}">Pre</th><th class="${th}">Conn</th><th class="${th}">Post</th>
+                <th class="${th}">W2W (min)</th><th class="${th}">BPOS rise</th><th class="${th}">DBTM Δ</th><th class="${th}">Status</th>
+            </tr></thead><tbody>`;
+
+            cs.forEach(c => {
+                const ex = excluded.has(c.cycle_number);
+                const notes = [...(c.abnormal_reasons || []), ...(c.warnings || [])];
+                const badge = c.abnormal
+                    ? `<span class="inline-block text-[0.64rem] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-red-100 text-red-600" title="${esc(notes.join('; '))}">Abnormal</span>`
+                    : (c.warnings && c.warnings.length
+                        ? `<span class="inline-block text-[0.64rem] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-amber-100 text-amber-600" title="${esc(notes.join('; '))}">Warning</span>`
+                        : `<span class="inline-block text-[0.64rem] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-100 text-emerald-600">Normal</span>`);
+                const typeBadge = c.connection_type === 'stand'
+                    ? `<span class="inline-block text-[0.64rem] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-100 text-blue-600">stand</span>`
+                    : `<span class="inline-block text-[0.64rem] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-indigo-100 text-indigo-700">joint</span>`;
+                const slow = b !== null && c.w2w_minutes > b ? 'text-amber-700 font-bold' : '';
+                const rowBg = c.abnormal ? 'bg-red-50' : (c.cycle_number === st.best ? 'bg-amber-50' : '');
+                const tdCls = 'px-3 py-2.5 border-t border-slate-200 align-middle ' + (ex ? 'text-slate-400 ' : 'text-slate-900 ');
+
+                h += `<tr class="${rowBg} hover:bg-indigo-50/40 transition-colors">
+                    <td class="${tdCls}"><input type="checkbox" data-cycle="${c.cycle_number}" ${ex ? '' : 'checked'} class="accent-indigo-600"></td>
+                    <td class="${tdCls}">${c.cycle_number}</td>
+                    <td class="${tdCls}">${typeBadge}</td>
+                    <td class="${tdCls}">${esc(c.shift)}</td>
+                    <td class="${tdCls}">${num(c.depth_dmea_m)}</td>
+                    <td class="${tdCls}">${fmtDate(c.date_pre_start)}</td>
+                    <td class="${tdCls}">${fmtDate(c.date_slip_in)}</td>
+                    <td class="${tdCls}">${fmtDate(c.date_slip_out)}</td>
+                    <td class="${tdCls}">${fmtDate(c.date_post_end)}</td>
+                    <td class="${tdCls}">${num(c.pre_connection_minutes)}</td>
+                    <td class="${tdCls}">${num(c.connection_minutes)}</td>
+                    <td class="${tdCls}">${num(c.post_connection_minutes)}</td>
+                    <td class="${tdCls}${slow}">${num(c.w2w_minutes)}</td>
+                    <td class="${tdCls}">${num(c.pre_bpos_change_m)}</td>
+                    <td class="${tdCls}">${num(c.conn_dbtm_change_m)}</td>
+                    <td class="${tdCls}">${badge}</td>
+                </tr>`;
+            });
+            $('cycleTableContainer').innerHTML = h + '</tbody></table>';
+        }
+
+        $('cycleTableContainer').addEventListener('change', e => {
+            const n = Number(e.target.dataset && e.target.dataset.cycle);
+            if (!Number.isFinite(n) || e.target.type !== 'checkbox') return;
+            if (e.target.checked) excluded.delete(n); else excluded.add(n);
+            renderAll();
+        });
+
+        function renderDaily(cs) {
+            const days = {};
+            cs.forEach(c => { (days[c.date] = days[c.date] || []).push(c); });
+            const keys = Object.keys(days).sort();
+            if (!keys.length) {
+                $('dailyContainer').innerHTML = '<div class="text-slate-400 py-8 text-center italic text-sm">No data.</div>';
+                return;
+            }
+            const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+            const th = 'px-3 py-2.5 text-left font-bold whitespace-nowrap text-slate-600 text-[0.72rem] uppercase tracking-wider border-b border-slate-200 bg-slate-50';
+            const td = 'px-3 py-2.5 border-t border-slate-200';
+            let h = `<table class="w-full border-collapse text-[0.82rem]"><thead><tr>
+                <th class="${th}">Date</th><th class="${th}">Connections</th><th class="${th}">Included</th>
+                <th class="${th}">Avg W2W</th><th class="${th}">Min W2W</th><th class="${th}">Max W2W</th><th class="${th}">Avg conn</th>
+            </tr></thead><tbody>`;
+            keys.forEach(k => {
+                const inc = days[k].filter(c => !excluded.has(c.cycle_number));
+                const w = inc.map(c => c.w2w_minutes);
+                h += `<tr class="hover:bg-indigo-50/40 transition-colors">
+                    <td class="${td}">${esc(k)}</td><td class="${td}">${days[k].length}</td><td class="${td}">${inc.length}</td>
+                    <td class="${td}">${num(avg(w))}</td>
+                    <td class="${td}">${num(w.length ? Math.min(...w) : null)}</td>
+                    <td class="${td}">${num(w.length ? Math.max(...w) : null)}</td>
+                    <td class="${td}">${num(avg(inc.map(c => c.connection_minutes)))}</td>
+                </tr>`;
+            });
+            $('dailyContainer').innerHTML = h + '</tbody></table>';
+        }
+
+        function renderQuality(st) {
+            const q = lastResult.quality || {};
+            const inc = lastResult.incomplete_connections || [];
+            const deg = (lastResult.global_metrics || {}).degradation_periods || [];
+            const iv = q.inconsistent_values || {};
+            const kvBox = 'bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-[0.78rem] text-slate-600 font-medium';
+
+            let h = '<div class="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-2.5 mb-4">' +
+                [['Invalid timestamps', q.invalid_timestamps], ['Bad sensor values replaced', q.bad_values_replaced],
+                 ['Rows dropped (missing)', q.rows_dropped_invalid], ['Duplicate timestamps', q.duplicate_timestamps],
+                 ['Data gaps (> 10 min)', q.data_gap_count], ['Median sampling (s)', num(q.median_sampling_s, 1)],
+                 ['DBTM > DMEA rows', iv.dbtm_greater_than_dmea], ['BPOS below floor rows', iv.bpos_below_floor],
+                 ['Incomplete connections', inc.length]]
+                .map(([l, v]) => `<div class="${kvBox}"><b class="block text-lg font-bold text-slate-900 mb-0.5 tracking-tight">${esc(v ?? 0)}</b>${l}</div>`).join('') + '</div>';
+
+            const ulCls = 'mt-1.5 mb-4 ml-5 list-disc text-sm leading-7 text-slate-600 space-y-0.5';
+            const pCls = 'mt-3.5 text-[0.9rem] text-slate-900';
+            const bCls = 'font-bold';
+
+            const warns = q.warnings || [];
+            if (warns.length) h += `<p class="${pCls}"><b class="${bCls}">Warnings</b></p><ul class="${ulCls}">${warns.map(w => `<li>${esc(w)}</li>`).join('')}</ul>`;
+            if ((q.data_gaps || []).length) h += `<p class="${pCls}"><b class="${bCls}">Data gaps</b></p><ul class="${ulCls}">${q.data_gaps.slice(0, 20).map(g => `<li>${fmtDate(g.start)} → ${fmtDate(g.end)} (${num(g.minutes, 1)} min)</li>`).join('')}</ul>`;
+            if (inc.length) h += `<p class="${pCls}"><b class="${bCls}">Incomplete connections</b></p><ul class="${ulCls}">${inc.map(i => `<li>${fmtDate(i.at)} – ${esc(i.reason)}${i.depth_dmea_m != null ? ' @ ' + num(i.depth_dmea_m, 1) + ' m' : ''}</li>`).join('')}</ul>`;
+
+            const slow = [...st.inc].sort((a, b) => b.w2w_minutes - a.w2w_minutes).slice(0, 5);
+            if (slow.length) h += `<p class="${pCls}"><b class="${bCls}">Slowest connections</b></p><ul class="${ulCls}">${slow.map(c => `<li>#${c.cycle_number} – ${num(c.w2w_minutes)} min @ ${num(c.depth_dmea_m, 1)} m</li>`).join('')}</ul>`;
+            if (st.best !== null) { const bc = st.inc.find(c => c.cycle_number === st.best); h += `<p class="${pCls}"><b class="${bCls}">Best time:</b> #${bc.cycle_number} – ${num(bc.w2w_minutes)} min</p>`; }
+            if (deg.length) h += `<p class="${pCls}"><b class="${bCls}">Performance degradation periods</b> (5-connection average &gt; 130 % of median)</p><ul class="${ulCls}">${deg.map(d => `<li>#${d.from_cycle} → #${d.to_cycle} (${fmtDate(d.from)} → ${fmtDate(d.to)}): avg ${num(d.avg_w2w_minutes)} min vs median ${num(d.reference_minutes)} min</li>`).join('')}</ul>`;
+
+            $('qualityContainer').innerHTML = h;
+        }
+
+        function niceMax(v) {
+            if (!(v > 0)) return 1;
+            const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p;
+            return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p;
+        }
+        function frame(W, H, P, ymax, ylabel) {
+            const ph = H - P.t - P.b;
+            let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif" font-size="11">`;
+            for (let i = 0; i <= 5; i++) {
+                const v = ymax * i / 5, y = P.t + ph - ph * i / 5;
+                s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y}" y2="${y}" stroke="#e5e7eb"/><text x="${P.l - 6}" y="${y + 4}" text-anchor="end" fill="#94a3b8">${+v.toFixed(1)}</text>`;
+            }
+            s += `<text transform="rotate(-90)" x="${-(P.t + ph / 2)}" y="13" text-anchor="middle" fill="#94a3b8">${ylabel}</text>`;
+            return s;
+        }
+        const empty = '<div class="text-slate-400 py-8 text-center italic text-sm">No data for this selection.</div>';
+
+        function barChart(cs, st) {
+            if (!cs.length) return empty;
+            const W = 900, H = 330, P = { l: 52, r: 52, t: 34, b: 38 };
+            const pw = W - P.l - P.r, ph = H - P.t - P.b, bw = pw / cs.length, b = benchmark();
+            const ymax = niceMax(Math.max(...cs.map(c => c.w2w_minutes), b || 0) * 1.08);
+            const y = v => P.t + ph - ph * v / ymax;
+            let s = frame(W, H, P, ymax, 'Time (minutes)');
+            [['Pre-connection', C.pre], ['Connection', C.conn], ['Post-connection', C.post]].forEach(([l, col], i) => {
+                s += `<rect x="${P.l + i * 130}" y="8" width="12" height="12" rx="2" fill="${col}"/><text x="${P.l + i * 130 + 16}" y="18" fill="#334155">${l}</text>`;
+            });
+            const step = Math.max(1, Math.ceil(cs.length / 30));
+            cs.forEach((c, i) => {
+                const x = P.l + i * bw + bw * 0.1, w = bw * 0.8;
+                const isBest = c.cycle_number === st.best, isWorst = c.cycle_number === st.worst && st.n > 1;
+                const op = excluded.has(c.cycle_number) ? 0.35 : 1;
+                let acc = 0, g = `<g opacity="${op}"><title>#${c.cycle_number}: W2W ${num(c.w2w_minutes)} min (pre ${num(c.pre_connection_minutes)} / conn ${num(c.connection_minutes)} / post ${num(c.post_connection_minutes)})</title>`;
+                [[c.pre_connection_minutes, C.pre], [c.connection_minutes, C.conn], [c.post_connection_minutes, C.post]].forEach(([v, col]) => {
+                    const y1 = y(acc + v), hh = y(acc) - y1; acc += v;
+                    g += `<rect x="${x}" y="${y1}" width="${w}" height="${Math.max(hh, 0)}" fill="${isBest ? C.best : isWorst ? C.worst : col}" stroke="#fff" stroke-width=".6"/>`;
+                    if (w >= 24 && hh >= 12) g += `<text x="${x + w / 2}" y="${y1 + hh / 2 + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${isWorst ? '#fff' : '#1e293b'}">${num(v, 1)}</text>`;
+                });
+                if (isBest || isWorst) g += `<text x="${x + w / 2}" y="${y(acc) - 4}" text-anchor="middle" font-weight="700" fill="${isBest ? '#a16207' : C.worst}">${isBest ? 'Best' : 'Worst'}: ${num(c.w2w_minutes)}</text>`;
+                if (c.abnormal) g += `<rect x="${x}" y="${y(acc)}" width="${w}" height="${y(0) - y(acc)}" fill="none" stroke="${C.bad}" stroke-dasharray="3 2"/>`;
+                s += g + '</g>';
+                if (i % step === 0) s += `<text x="${x + w / 2}" y="${H - P.b + 14}" text-anchor="middle" fill="#94a3b8">${c.cycle_number}</text>`;
+            });
+            if (b) s += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(b)}" y2="${y(b)}" stroke="${C.bench}" stroke-dasharray="6 4"/><text x="${W - P.r}" y="${y(b) - 4}" text-anchor="end" fill="${C.bench}" font-weight="600">Benchmark ${num(b)}</text>`;
+            s += `<text x="${P.l + pw / 2}" y="${H - 6}" text-anchor="middle" fill="#94a3b8">Connection number</text>`;
+            return s + '</svg>';
+        }
+
+        function histChart(inc) {
+            if (!inc.length) return empty;
+            const v = inc.map(c => c.w2w_minutes), mn = Math.min(...v), mx = Math.max(...v);
+            const k = Math.min(12, Math.max(4, Math.ceil(Math.sqrt(v.length))));
+            const stp = (mx - mn) / k || 1, cnt = Array(k).fill(0);
+            v.forEach(x => { let i = Math.floor((x - mn) / stp); if (i >= k) i = k - 1; cnt[i]++; });
+            const W = 440, H = 280, P = { l: 44, r: 44, t: 14, b: 40 };
+            const pw = W - P.l - P.r, ph = H - P.t - P.b, bw = pw / k, ymax = Math.max(1, Math.max(...cnt));
+            const ymaxN = Math.ceil(ymax * 1.1);
+            let s = frame(W, H, P, ymaxN, 'Connections');
+            cnt.forEach((c, i) => {
+                const h = ph * c / ymaxN, x = P.l + i * bw;
+                s += `<g><title>${num(mn + i * stp, 1)} – ${num(mn + (i + 1) * stp, 1)} min: ${c}</title><rect x="${x + 1}" y="${P.t + ph - h}" width="${bw - 2}" height="${h}" rx="2" fill="${C.line}" opacity=".85"/></g>`;
+                if (c) s += `<text x="${x + bw / 2}" y="${P.t + ph - h - 3}" text-anchor="middle" fill="#334155" font-weight="600">${c}</text>`;
+            });
+            for (let i = 0; i <= k; i += Math.max(1, Math.ceil(k / 6))) s += `<text x="${P.l + i * bw}" y="${H - P.b + 14}" text-anchor="middle" fill="#94a3b8">${num(mn + i * stp, 1)}</text>`;
+            s += `<text x="${P.l + pw / 2}" y="${H - 6}" text-anchor="middle" fill="#94a3b8">W2W (minutes)</text>`;
+            return s + '</svg>';
+        }
+
+        function lineChart(cs) {
+            if (!cs.length) return empty;
+            const W = 440, H = 280, P = { l: 44, r: 44, t: 14, b: 40 }, b = benchmark();
+            const pw = W - P.l - P.r, ph = H - P.t - P.b;
+            const ymax = niceMax(Math.max(...cs.map(c => c.w2w_minutes), b || 0) * 1.08);
+            const X = i => P.l + (cs.length === 1 ? pw / 2 : pw * i / (cs.length - 1));
+            const Y = v => P.t + ph - ph * v / ymax;
+            let s = frame(W, H, P, ymax, 'W2W (minutes)');
+            const ok = cs.map((c, i) => [c, i]).filter(([c]) => !c.abnormal);
+            if (ok.length > 1) s += `<polyline fill="none" stroke="${C.line}" stroke-width="1.8" points="${ok.map(([c, i]) => X(i) + ',' + Y(c.w2w_minutes)).join(' ')}"/>`;
+            cs.forEach((c, i) => {
+                s += `<circle cx="${X(i)}" cy="${Y(c.w2w_minutes)}" r="3.4" fill="${c.abnormal ? C.bad : C.line}" stroke="#fff" stroke-width="1"><title>#${c.cycle_number} ${fmtDate(c.date_slip_in)}: ${num(c.w2w_minutes)} min${c.abnormal ? ' (abnormal)' : ''}</title></circle>`;
+            });
+            if (b) s += `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(b)}" y2="${Y(b)}" stroke="${C.bench}" stroke-dasharray="6 4"/><text x="${W - P.r}" y="${Y(b) - 4}" text-anchor="end" fill="${C.bench}" font-weight="600">Benchmark</text>`;
+            const stp = Math.max(1, Math.ceil(cs.length / 5));
+            for (let i = 0; i < cs.length; i += stp) s += `<text x="${X(i)}" y="${H - P.b + 14}" text-anchor="middle" fill="#94a3b8">${fmtHM(cs[i].date_slip_in)}</text>`;
+            s += `<text x="${P.l + pw / 2}" y="${H - 6}" text-anchor="middle" fill="#94a3b8">Time (red = abnormal)</text>`;
+            return s + '</svg>';
+        }
+
+        function getMeta() {
+            const g = id => $(id).value.trim();
+            const period = lastResult && lastResult.period ? `${fmtDate(lastResult.period.start)} - ${fmtDate(lastResult.period.end)}` : '';
+            const dayS = g('dayStartH'), dayE = g('dayEndH');
+            const nightS = g('nightStartH'), nightE = g('nightEndH');
+            return {
+                'Well name': g('wellName'), 'Rig name': g('rigName'), 'Phase': g('phase'), 'Rotary system': g('rotarySystem'),
+                'Drill pipe': g('drillPipe'), 'Last casing shoe': g('lastCsgShoe'), 'Run No.': g('runNo'), 'BHA name': g('bhaName'),
+                'W2W benchmark (min)': g('benchmarkMinutes'), 'Selected period': period,
+                'Day shift': (dayS || dayE) ? `${dayS || '—'} → ${dayE || '—'}` : 'Default (6h – 18h)',
+                'Night shift': (nightS || nightE) ? `${nightS || '—'} → ${nightE || '—'}` : 'Complement of day shift',
+                'Slip threshold (t)': lastResult ? num(lastResult.slip_threshold_ton, 3) : '',
+                'Source file': selectedFile ? selectedFile.name : '',
+            };
+        }
+
+        async function exportFile(fmt) {
+            if (!lastResult) return;
+            const cycles = getFiltered().map(c => ({ ...c, excluded: excluded.has(c.cycle_number) }));
+            if (!cycles.length) { showError('Nothing to export for this selection.'); return; }
+            try {
+                const res = await fetch('/api/export/' + fmt, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: { ...lastResult, cycles }, meta: getMeta() }),
+                });
+                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || 'Export failed'); }
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `W2W_${($('wellName').value.trim() || 'well').replace(/[^\w-]/g, '_')}.${fmt}`;
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+            } catch (err) { showError(err.message); }
+        }
+
+        $('downloadPdfBtn').addEventListener('click', async () => {
+            if (!lastResult) return;
+            const btn = $('downloadPdfBtn');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="inline-block size-4 border-[3px] border-white/35 border-t-white rounded-full animate-spin" aria-hidden="true"></span><span>Generating PDF...</span>';
+            let pdfState = null;
+
+            try {
+                renderPdfReport();
+                pdfState = enablePdfTailwind();
+                await document.fonts.ready;
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                const el = $('pdfReport');
+                const filename = `W2W_${($('wellName').value.trim() || 'well').replace(/[^\w-]/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+
+                await html2pdf().set({
+                    margin: 0,
+                    filename,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        width: 794,
+                        windowWidth: 794,
+                        scrollX: 0,
+                        scrollY: 0,
+                        x: 0,
+                        y: 0,
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+                    pagebreak: { mode: ['css'] }
+                }).from(el).save();
+
+            } catch (err) {
+                showError('PDF generation failed: ' + (err.message || err));
+            } finally {
+                restorePageClasses(pdfState);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+
+        function renderPdfReport() {
+            const cs = getFiltered(), st = stats(cs), meta = getMeta(), b = benchmark();
+            const v = k => esc(meta[k] || 'N/A');
+            const diff = (b !== null && st.avg !== null) ? b - st.avg : null;
+            const tableClass = 'w-full border-collapse text-center text-[8pt] mx-auto mb-[8mm]';
+            const thClass = 'bg-[#ff8c00] text-white font-bold text-center border border-[#ddd] p-[2.4mm]';
+            const tdClass = 'text-center border border-[#ddd] p-[2.4mm]';
+            const benchRows = b !== null ? `<tr class="even:bg-[#fafafa]"><td class="${tdClass}">W2W benchmark (min)</td><td class="${tdClass}">${num(b)}</td></tr>
+                <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Benchmark − actual average (min)</td><td class="${tdClass} ${diff !== null && diff < 0 ? 'text-[#c00000]' : 'text-[#16803c]'} font-bold">${num(diff)}</td></tr>` : '';
+            const rows = cs.length ? cs.map(c => `<tr class="even:bg-[#fafafa]"><td class="${tdClass}">${c.cycle_number}</td><td class="${tdClass}">${num(c.pre_connection_minutes)}</td><td class="${tdClass}">${num(c.connection_minutes)}</td>
+                <td class="${tdClass}">${num(c.post_connection_minutes)}</td><td class="${tdClass}">${num(c.w2w_minutes)}</td><td class="${tdClass}">${num(c.depth_dmea_m)}</td>
+                <td class="${tdClass} ${c.abnormal ? 'text-[#c00000]' : 'text-[#16803c]'} font-bold">${c.abnormal ? 'Abnormal' : 'Normal'}${excluded.has(c.cycle_number) ? ' (excl.)' : ''}</td></tr>`).join('')
+                : `<tr><td class="${tdClass}" colspan="7">No cycles detected.</td></tr>`;
+
+            $('pdfReport').innerHTML = `
+                <article class="w-[210mm] min-h-0 h-auto relative break-after-auto px-[15mm] py-[12mm] bg-white box-border text-center overflow-visible">
+                    <div class="h-[42mm] bg-[#ff8c00] mx-[-15mm] mb-[28mm]"></div><div class="absolute top-[22mm] inset-x-0 text-center text-[21pt] font-bold">RTOM SONATRACH</div>
+                    <h1 class="text-center text-[17pt] mb-[18mm]">Weight To Weight Analysis Report</h1><div class="border-t border-[#bbb] mb-[15mm]"></div>
+                    <div class="w-[76%] mx-auto p-[5mm_8mm] bg-[#f7f7f7] border border-[#ddd] box-border text-center text-[9pt]">
+                        ${['Well name', 'Rig name', 'Phase', 'Rotary system', 'Drill pipe', 'Last casing shoe', 'Run No.', 'BHA name', 'Day shift', 'Night shift'].map(k => `<div class="grid grid-cols-[45%_55%] py-[1.5mm] text-center"><strong class="text-right pr-[4mm]">${k}:</strong><span class="text-left pl-[4mm]">${v(k)}</span></div>`).join('')}
+                        <div class="grid grid-cols-[45%_55%] py-[1.5mm] text-center"><strong class="text-right pr-[4mm]">Analysis period:</strong><span class="text-left pl-[4mm]">${v('Selected period')}</span></div>
+                        <div class="grid grid-cols-[45%_55%] py-[1.5mm] text-center"><strong class="text-right pr-[4mm]">Source file:</strong><span class="text-left pl-[4mm]">${v('Source file')}</span></div>
+                        <div class="grid grid-cols-[45%_55%] py-[1.5mm] text-center"><strong class="text-right pr-[4mm]">Generated on:</strong><span class="text-left pl-[4mm]">${esc(new Date().toLocaleString())}</span></div>
                     </div>
-                `).join('');
-
-                // Global metrics
-                const metricItems = [
-                    { label: 'Total cycles', value: metrics.total_cycles ?? 0, cls: '' },
-                    { label: 'Normal', value: metrics.normal_cycles ?? 0, cls: 'normal' },
-                    { label: 'Abnormal', value: metrics.abnormal_cycles ?? 0, cls: 'abnormal' },
-                    { label: 'Avg W2W (min)', value: fmt(metrics.avg_w2w_minutes), cls: '' },
-                    { label: 'Avg pre (min)', value: fmt(metrics.avg_pre_connection_minutes), cls: '' },
-                    { label: 'Avg conn (min)', value: fmt(metrics.avg_connection_minutes), cls: '' },
-                    { label: 'Avg post (min)', value: fmt(metrics.avg_post_connection_minutes), cls: '' },
-                    { label: 'Total W2W (min)', value: fmt(metrics.total_w2w_minutes, 2, '0'), cls: '' },
-                    { label: 'Min W2W (min)', value: fmt(metrics.min_w2w_minutes), cls: '' },
-                    { label: 'Max W2W (min)', value: fmt(metrics.max_w2w_minutes), cls: '' },
-                    { label: 'Min conn (min)', value: fmt(metrics.min_connection_minutes), cls: '' },
-                    { label: 'Max conn (min)', value: fmt(metrics.max_connection_minutes), cls: '' },
-                    { label: 'Best conn #', value: metrics.best_connection_index ?? '—', cls: '' },
-                    { label: 'Worst conn #', value: metrics.worst_connection_index ?? '—', cls: '' },
-                ];
-                metricsGrid.innerHTML = metricItems.map(m => `
-                    <div class="metric-card">
-                        <div class="value ${m.cls}">${m.value}</div>
-                        <div class="label">${m.label}</div>
-                    </div>
-                `).join('');
-
-                // Cycle table
-                if (cycles.length === 0) {
-                    cycleTableContainer.innerHTML = `<div class="no-cycles">No cycles detected.</div>`;
-                } else {
-                    let html = `<table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Type</th>
-                                <th>Depth (m)</th>
-                                <th>Pre start</th>
-                                <th>Slip in</th>
-                                <th>Slip out</th>
-                                <th>Post end</th>
-                                <th>Pre (min)</th>
-                                <th>Conn (min)</th>
-                                <th>Post (min)</th>
-                                <th>W2W (min)</th>
-                                <th>BPOS rise (m)</th>
-                                <th>DBTM Δ (m)</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    `;
-
-                    cycles.forEach(c => {
-                        const abnormal = c.abnormal || false;
-                        const reasons = c.abnormal_reasons || [];
-                        const statusBadge = abnormal
-                            ? `<span class="badge badge-abnormal" title="${reasons.join('; ')}">Abnormal</span>`
-                            : `<span class="badge badge-normal">Normal</span>`;
-                        const typeBadge = c.connection_type === 'stand'
-                            ? `<span class="badge badge-stand">Stand</span>`
-                            : `<span class="badge badge-joint">Joint</span>`;
-
-                        html += `<tr class="${abnormal ? 'abnormal-row' : ''}">
-                            <td>${c.cycle_number ?? '—'}</td>
-                            <td>${typeBadge}</td>
-                            <td>${fmt(c.depth_dmea_m)}</td>
-                            <td>${formatDate(c.date_pre_start)}</td>
-                            <td>${formatDate(c.date_slip_in)}</td>
-                            <td>${formatDate(c.date_slip_out)}</td>
-                            <td>${formatDate(c.date_post_end)}</td>
-                            <td>${fmt(c.pre_connection_minutes)}</td>
-                            <td>${fmt(c.connection_minutes)}</td>
-                            <td>${fmt(c.post_connection_minutes)}</td>
-                            <td>${fmt(c.w2w_minutes)}</td>
-                            <td>${fmt(c.pre_bpos_change_m)}</td>
-                            <td>${fmt(c.conn_dbtm_change_m)}</td>
-                            <td>${statusBadge}</td>
-                        </tr>`;
-                    });
-
-                    html += `</tbody></table>`;
-                    cycleTableContainer.innerHTML = html;
-                }
-
-                resultsContainer.classList.add('visible');
-                reportActions.classList.add('visible');
-            }
-
-            downloadPdfBtn.addEventListener('click', () => {
-                if (!lastResult) return;
-                renderPdfReport(lastResult);
-                window.print();
+                    <div class="relative mt-[12mm] text-center text-[#888] text-[8pt]">Generated automatically by RTOM Sonatrach Analysis Tool</div>
+                </article>
+                <article class="w-[210mm] min-h-0 h-auto break-before-page p-[15mm] bg-white box-border text-center overflow-visible">
+                    <h2 class="text-[#666] text-[14pt] text-center mb-[10mm]">Weight To Weight Summary</h2>
+                    <table class="${tableClass}"><thead><tr><th class="${thClass}">Metric</th><th class="${thClass}">Value</th></tr></thead><tbody>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Connections (selection)</td><td class="${tdClass}">${st.shown}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Included in KPIs</td><td class="${tdClass}">${st.n}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Abnormal / excluded</td><td class="${tdClass}">${st.abnormal} / ${st.excluded}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Average W2W (min)</td><td class="${tdClass}">${num(st.avg)}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Median W2W (min)</td><td class="${tdClass}">${num(st.median)}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Min / Max W2W (min)</td><td class="${tdClass}">${num(st.min)} / ${num(st.max)}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Average pre-connection (min)</td><td class="${tdClass}">${num(st.avgPre)}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Average connection (min)</td><td class="${tdClass}">${num(st.avgConn)}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Average post-connection (min)</td><td class="${tdClass}">${num(st.avgPost)}</td></tr>
+                        ${benchRows}
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Best connection #</td><td class="${tdClass}">${st.best ?? 'N/A'}</td></tr>
+                        <tr class="even:bg-[#fafafa]"><td class="${tdClass}">Worst connection #</td><td class="${tdClass}">${st.worst ?? 'N/A'}</td></tr>
+                    </tbody></table>
+                </article>
+                <article class="w-[210mm] min-h-0 h-auto break-before-page p-[15mm] bg-white box-border text-center overflow-visible break-inside-avoid pt-[22mm]">
+                    <h2 class="text-[#666] text-[14pt] text-center mb-[10mm]">W2W per connection</h2><div class="grid place-items-center w-full mt-[10mm]">${barChart(cs, st)}</div>
+                </article>
+                <article class="w-[210mm] min-h-0 h-auto break-before-page p-[15mm] bg-white box-border text-center overflow-visible break-inside-avoid pt-[22mm]">
+                    <h2 class="text-[#666] text-[14pt] text-center mb-[10mm]">W2W distribution</h2><div class="grid place-items-center w-full mt-[10mm]">${histChart(st.inc)}</div>
+                </article>
+                <article class="w-[210mm] min-h-0 h-auto break-before-page p-[15mm] bg-white box-border text-center overflow-visible break-inside-avoid pt-[22mm]">
+                    <h2 class="text-[#666] text-[14pt] text-center mb-[10mm]">W2W evolution over time</h2><div class="grid place-items-center w-full mt-[10mm]">${lineChart(cs)}</div>
+                </article>
+                <article class="w-[210mm] min-h-0 h-auto break-before-page p-[15mm] bg-white box-border text-center overflow-visible">
+                    <h2 class="text-[#666] text-[14pt] text-center mb-[10mm]">Detailed Connections Data</h2>
+                    <table class="${tableClass}"><thead><tr><th class="${thClass}">Conn No.</th><th class="${thClass}">Pre-Conn (min)</th><th class="${thClass}">Conn (min)</th><th class="${thClass}">Post-Conn (min)</th><th class="${thClass}">W2W (min)</th><th class="${thClass}">Depth (m)</th><th class="${thClass}">Comment</th></tr></thead>
+                    <tbody>${rows}</tbody></table>
+                </article>`;
+            $('pdfReport').querySelectorAll('.grid.place-items-center svg').forEach(svg => {
+                svg.classList.add('block', 'w-[90%]', 'max-w-full', 'h-auto', 'mx-auto', 'max-h-[190mm]');
             });
-
-            function renderPdfReport(data) {
-                const cycles = data.cycles || [];
-                const metrics = data.global_metrics || {};
-                const firstCycle = cycles[0];
-                const lastCycle = cycles[cycles.length - 1];
-                const period = firstCycle && lastCycle
-                    ? `${formatDate(firstCycle.date_pre_start)} - ${formatDate(lastCycle.date_post_end)}`
-                    : 'N/A';
-                const value = (id) => escapeHtml(document.getElementById(id).value.trim() || 'N/A');
-                const number = (n) => n == null ? 'N/A' : Number(n).toFixed(2);
-                const benchmark = Number.parseFloat(
-                    document.getElementById('benchmarkMinutes').value
-                );
-                const hasBenchmark = Number.isFinite(benchmark);
-                const actualW2W = metrics.avg_w2w_minutes;
-                const benchmarkRow = hasBenchmark ? `
-                    <tr><td>W2W benchmark (min)</td><td>${number(benchmark)}</td></tr>
-                    <tr><td>W2W difference: benchmark − actual (min)</td><td class="${actualW2W != null && benchmark - actualW2W < 0 ? 'bad' : 'good'}">${actualW2W == null ? 'N/A' : number(benchmark - actualW2W)}</td></tr>` : '';
-                const cycleRows = cycles.length ? cycles.map(c => `
-                    <tr>
-                        <td>${c.cycle_number}</td>
-                        <td>${number(c.pre_connection_minutes)}</td>
-                        <td>${number(c.connection_minutes)}</td>
-                        <td>${number(c.post_connection_minutes)}</td>
-                        <td>${number(c.w2w_minutes)}</td>
-                        <td>${number(c.depth_dmea_m)}</td>
-                        <td class="${c.abnormal ? 'bad' : 'good'}">${c.abnormal ? 'Abnormal' : 'Normal'}</td>
-                    </tr>`).join('') : '<tr><td colspan="7">No cycles detected.</td></tr>';
-
-                pdfReport.innerHTML = `
-                    <article class="report-cover">
-                        <div class="report-banner"></div>
-                        <div class="report-brand">RTOM SONATRACH</div>
-                        <h1 class="report-title">Weight To Weight Analysis Report</h1>
-                        <div class="report-rule"></div>
-                        <div class="report-info">
-                            <div><strong>Well Name:</strong><span>${value('wellName')}</span></div>
-                            <div><strong>Rig Name:</strong><span>${value('rigName')}</span></div>
-                            <div><strong>Phase:</strong><span>${value('phase')}</span></div>
-                            <div><strong>Rotary System:</strong><span>${value('rotarySystem')}</span></div>
-                            <div><strong>Drill Pipe:</strong><span>${value('drillPipe')}</span></div>
-                            <div><strong>Last Casing Shoe:</strong><span>${value('lastCsgShoe')}</span></div>
-                            <div><strong>Run No.:</strong><span>${value('runNo')}</span></div>
-                            <div><strong>BHA Name:</strong><span>${value('bhaName')}</span></div>
-                            <div><strong>Analysis period:</strong><span>${escapeHtml(period)}</span></div>
-                            <div><strong>Source file:</strong><span>${escapeHtml(selectedFile?.name || 'N/A')}</span></div>
-                        </div>
-                        <div class="report-footer">Generated automatically by RTOM Sonatrach Analysis Tool</div>
-                    </article>
-                    <article class="report-page">
-                        <h2 class="report-heading">Weight To Weight Summary</h2>
-                        <table class="report-table">
-                            <thead><tr><th>Metric</th><th>Value</th></tr></thead>
-                            <tbody>
-                                <tr><td>Total cycles</td><td>${metrics.total_cycles ?? 0}</td></tr>
-                                <tr><td>Normal cycles</td><td>${metrics.normal_cycles ?? 0}</td></tr>
-                                <tr><td>Abnormal cycles</td><td>${metrics.abnormal_cycles ?? 0}</td></tr>
-                                <tr><td>Average W2W time (min)</td><td>${number(metrics.avg_w2w_minutes)}</td></tr>
-                                <tr><td>Average connection time (min)</td><td>${number(metrics.avg_connection_minutes)}</td></tr>
-                                <tr><td>Average pre-connection time (min)</td><td>${number(metrics.avg_pre_connection_minutes)}</td></tr>
-                                <tr><td>Average post-connection time (min)</td><td>${number(metrics.avg_post_connection_minutes)}</td></tr>
-                                ${benchmarkRow}
-                                <tr><td>Best connection #</td><td>${metrics.best_connection_index ?? 'N/A'}</td></tr>
-                                <tr><td>Worst connection #</td><td>${metrics.worst_connection_index ?? 'N/A'}</td></tr>
-                            </tbody>
-                        </table>
-                    </article>
-                    <article class="report-page">
-                        <h2 class="report-heading">Detailed Connections Data</h2>
-                        <table class="report-table">
-                            <thead><tr><th>Conn No.</th><th>Pre-Conn (min)</th><th>Conn (min)</th><th>Post-Conn (min)</th><th>W2W (min)</th><th>Depth (m)</th><th>Comment</th></tr></thead>
-                            <tbody>${cycleRows}</tbody>
-                        </table>
-                    </article>`;
-            }
-
-            function escapeHtml(value) {
-                return String(value).replace(/[&<>'"]/g, char => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-                })[char]);
-            }
-
-            // --- Helpers ---
-            function formatDate(iso) {
-                if (!iso) return '—';
-                try {
-                    const d = new Date(iso);
-                    return d.toLocaleString(undefined, {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    });
-                } catch {
-                    return iso;
-                }
-            }
-
-            function showError(msg) {
-                errorMsg.textContent = msg;
-                errorMsg.style.display = 'block';
-            }
-
-            function hideError() {
-                errorMsg.style.display = 'none';
-                errorMsg.textContent = '';
-            }
-        })();
+        }
+    })();
     </script>
+    {% endraw %}
 </body>
 </html>
